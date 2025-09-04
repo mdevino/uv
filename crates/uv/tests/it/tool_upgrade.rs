@@ -141,6 +141,53 @@ fn tool_upgrade_name() {
 }
 
 #[test]
+fn tool_upgrade_name_pinned() {
+    let context = TestContext::new("3.12")
+        .with_filtered_counts()
+        .with_filtered_exe_suffix();
+    let tool_dir = context.temp_dir.child("tools");
+    let bin_dir = context.temp_dir.child("bin");
+
+    // Install `babel` from Test PyPI, to get an outdated version.
+    uv_snapshot!(context.filters(), context.tool_install()
+        .arg("babel@2.6.0")
+        .arg("--index-url")
+        .arg("https://test.pypi.org/simple/")
+        .env(EnvVars::UV_TOOL_DIR, tool_dir.as_os_str())
+        .env(EnvVars::XDG_BIN_HOME, bin_dir.as_os_str())
+        .env(EnvVars::PATH, bin_dir.as_os_str()), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+
+    ----- stderr -----
+    Resolved [N] packages in [TIME]
+    Prepared [N] packages in [TIME]
+    Installed [N] packages in [TIME]
+     + babel==2.6.0
+     + pytz==2018.5
+    Installed 1 executable: pybabel
+    "###);
+
+    // Upgrade `babel` by installing from PyPI, which should upgrade to the latest version.
+    uv_snapshot!(context.filters(), context.tool_upgrade()
+        .arg("babel")
+        .arg("--index-url")
+        .arg("https://pypi.org/simple/")
+        .env(EnvVars::UV_TOOL_DIR, tool_dir.as_os_str())
+        .env(EnvVars::XDG_BIN_HOME, bin_dir.as_os_str())
+        .env(EnvVars::PATH, bin_dir.as_os_str()), @r###"
+    success: true
+    exit_code: 0
+    ----- stdout -----
+    babel version is pinned and will not be upgraded
+    
+    ----- stderr -----
+    Nothing to upgrade
+    "###);
+}
+
+#[test]
 fn tool_upgrade_multiple_names() {
     let context = TestContext::new("3.12")
         .with_filtered_counts()

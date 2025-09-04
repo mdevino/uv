@@ -238,6 +238,16 @@ async fn upgrade_tool(
             ));
         }
     };
+    if existing_tool_receipt.requirements()[0]
+        .source
+        .version_specifiers()
+        .is_some_and(|specifiers| {
+            !specifiers.is_empty() && specifiers[0].operator() == &uv_pep440::Operator::Equal
+        })
+    {
+        println!("{name} version is pinned and will not be upgraded");
+        return Ok(UpgradeOutcome::NoOp);
+    }
 
     let environment = match installed_tools.get_environment(name, cache) {
         Ok(Some(environment)) => environment,
